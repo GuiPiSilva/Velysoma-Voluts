@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 378 96" role="img" aria-labelledby="title">
+<title id="title">Velysoma Voluts</title>
+<defs><linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFE3A0"/><stop offset=".53" stop-color="#D4AC55"/><stop offset="1" stop-color="#9B732E"/></linearGradient></defs>
+<g fill="none" stroke="url(#gold)" stroke-linecap="round" stroke-linejoin="round"><path d="M16 35 49 79 82 35" stroke-width="10"/><path d="M32 36 49 58 65 36" stroke-width="5"/></g>
+<g fill="url(#gold)"><circle cx="16" cy="17" r="7"/><circle cx="49" cy="15" r="8"/><circle cx="82" cy="17" r="7"/></g>
+<text x="103" y="46" fill="#F7F4EA" font-family="Arial,Helvetica,sans-serif" font-size="34" font-weight="700" letter-spacing="-1.5">Velysoma</text>
+<text x="105" y="75" fill="url(#gold)" font-family="Arial,Helvetica,sans-serif" font-size="26" font-weight="700" letter-spacing="4">VOLUTS</text>
+</svg>

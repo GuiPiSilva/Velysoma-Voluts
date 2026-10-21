@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function NotFound() {return <main className="not-found"><img src="/brand/velysoma-voluts.svg" alt="Velysoma Voluts" width="206" height="54"/><div className="section-kicker">404 · PÁGINA NÃO ENCONTRADA</div><h1>Este endereço não existe.</h1><p>Volte para o início e continue explorando.</p><Link href="/" className="btn btn-gold">Voltar ao início →</Link></main>;}
