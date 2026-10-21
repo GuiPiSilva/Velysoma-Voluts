@@ -47,8 +47,17 @@ voluts_churches/{churchId}
 
 Os endpoints verificam token Firebase com claim `voluts`, e-mail verificado, associação e nível de acesso. As chaves administrativas ficam apenas no servidor. A coleção nova `voluts_*` não possui dependências das antigas coleções clínicas.
 
+### Novas funções: planejamento e escalas
+
+- **Disponibilidade**: dias da semana e datas bloqueadas registradas por quem administra a igreja.
+- **Agenda mensal**: visualização das programações por dia.
+- **Sugestões de voluntários**: considera ministério, disponibilidade, compromissos conflitantes e distribuição de escalas; a liderança escolhe quem escalar.
+- **Confirmar, recusar e fazer check-in**: responsável registra estado da escala; ainda não é o aceite individual do voluntário.
+- **Relatórios e CSV**: resumo de participação e exportação de dados carregados, com tratamento de células que parecem fórmulas.
+- **Segurança**: ações sensíveis continuam autorizadas no servidor por igreja; não há integração com WhatsApp.
+
 ### Escopo e limites
 
-Esta é a fundação da plataforma, não uma versão completa de produção. Ainda faltam: edição/exclusão, convites e papéis detalhados, disponibilidade, confirmação de escala, notificações, Kids, células, financeiro, pagamentos e aplicativo nativo. Listagens limitadas a 100 registros enquanto não há paginação. Os dados exibidos na ilustração do site são fictícios.
+Esta é a fundação da plataforma, não uma versão completa de produção. Ainda faltam: edição/exclusão, convites e papéis detalhados, disponibilidade, confirmação de escala, notificações, Kids, células, financeiro, pagamentos e aplicativo nativo. Listagens principais limitadas a 100 registros enquanto não há paginação; verificações de conflitos usam janelas limitadas e precisam de desenho transacional antes de grandes volumes. Os dados exibidos na ilustração do site são fictícios.
 
 Não foi feito nenhum deploy nem exclusão de dados de outros sistemas a partir deste repositório. Veja [ROADMAP](docs/ROADMAP.md).

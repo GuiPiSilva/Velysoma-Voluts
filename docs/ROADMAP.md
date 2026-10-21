@@ -20,3 +20,15 @@
 - [ ] Ensino / EBD, Kids e eventos com inscrições
 - [ ] Financeiro, doações e relatórios
 - [ ] Backup, exportação e políticas de privacidade
+
+## Etapa 2A — planejador (implementado para validação)
+- [x] Preferências semanais e datas indisponíveis por pessoa (edição pela administração)
+- [x] Visão mensal e sugestões assistidas para alocação
+- [x] Validação de disponibilidade, ministério e conflitos de horários na inclusão na escala
+- [x] Estados pendente, confirmado, recusado e check-in (ação da liderança)
+- [x] Relatórios resumidos e exportação CSV dos primeiros 100 registros por módulo
+- [ ] Convites Tera ID para voluntários e confirmação feita pela própria pessoa
+- [ ] Escala automática sem intervenção, com locks transacionais e regras para eventos recorrentes
+- [ ] Trilha de auditoria, paginação, fusos e escala avançada com vários papéis
+
+As sugestões não criam escalas automaticamente. Uma escala recusada não conta como bloqueio de horário.
