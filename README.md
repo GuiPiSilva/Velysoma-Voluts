@@ -61,3 +61,13 @@ Os endpoints verificam token Firebase com claim `voluts`, e-mail verificado, ass
 Esta é a fundação da plataforma, não uma versão completa de produção. Ainda faltam: edição/exclusão, convites e papéis detalhados, disponibilidade, confirmação de escala, notificações, Kids, células, financeiro, pagamentos e aplicativo nativo. Listagens principais limitadas a 100 registros enquanto não há paginação; verificações de conflitos usam janelas limitadas e precisam de desenho transacional antes de grandes volumes. Os dados exibidos na ilustração do site são fictícios.
 
 Não foi feito nenhum deploy nem exclusão de dados de outros sistemas a partir deste repositório. Veja [ROADMAP](docs/ROADMAP.md).
+
+## Organização simplificada do painel (prévia)
+- Menu principal: **Início**, **Agenda**, **Pessoas**, **Escalas** e **Ministérios**. Relatórios ficam em "Outros".
+- Agenda concentra calendário e cadastro de cultos/eventos; tocar num dia mostra suas programações.
+- Pessoas concentra cadastros e a aba de disponibilidade; Escalas concentra lista, confirmações e sugestões.
+- Formulários só aparecem após escolher "Novo", mantendo as listas limpas.
+- Layout compacto e adaptado para celular, com navegação expansível.
+- Nenhuma migração nem alteração nos dados ou no login TeraApps.
+
+Em caso de aprovação, mesclar a proposta à `main` e publicar apenas um deploy de produção.
