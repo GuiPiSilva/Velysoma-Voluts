@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./painel/extras.css";
 
 export const metadata: Metadata = {
   title: { default: "Velysoma Voluts — Pessoas, ministérios e propósito", template: "%s | Velysoma Voluts" },

@@ -5,9 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { browserAuth } from "@/lib/firebase/client";
 import { resources, resourceNames, type Resource, type Entry } from "@/lib/resources";
+import { Extras } from "./Extras";
 
 type Church = { id: string; name: string; role: string };
-type Tab = "overview" | Resource;
+type Tab = "overview" | Resource | "availability" | "planner" | "reports";
+const labels: Record<Tab,string> = { overview:"Visão geral",...resourceNames,availability:"Disponibilidade",planner:"Agenda e sugestões",reports:"Relatórios" };
 type EntryMap = Record<Resource, Entry[]>;
 type Form = { name: string; ministryId: string; email: string; phone: string; date: string; time: string; eventId: string; personId: string };
 const cleanForm: Form = { name:"", ministryId:"", email:"", phone:"", date:"", time:"", eventId:"", personId:"" };
@@ -17,12 +19,15 @@ const nav: { id: Tab; label: string; icon: string }[] = [
   {id:"people",label:"Pessoas",icon:"♙"},
   {id:"ministries",label:"Ministérios",icon:"✦"},
   {id:"events",label:"Programações",icon:"▦"},
-  {id:"assignments",label:"Escalas",icon:"☷"}
+  {id:"assignments",label:"Escalas",icon:"☷"},
+  {id:"availability",label:"Disponibilidade",icon:"◷"},
+  {id:"planner",label:"Agenda e sugestões",icon:"▦"},
+  {id:"reports",label:"Relatórios",icon:"▤"}
 ];
 
-async function api<T>(user: User, url: string, payload?: unknown): Promise<T> {
+async function api<T>(user: User, url: string, payload?: unknown, method?: "POST" | "PATCH"): Promise<T> {
   const response = await fetch(url, {
-    method: payload ? "POST" : "GET", cache: "no-store",
+    method: payload ? (method || "POST") : "GET", cache: "no-store",
     headers: { Authorization: "Bearer " + await user.getIdToken(), ...(payload ? { "Content-Type":"application/json" } : {}) },
     ...(payload ? { body: JSON.stringify(payload) } : {})
   });
@@ -99,7 +104,7 @@ export function Dashboard() {
   }
   async function createEntry(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!user || !churchId || tab === "overview") return;
+    if (!user || !churchId || !resources.includes(tab as Resource)) return;
     setWorking(true); setNotice("");
     try {
       let payload: object;
@@ -115,6 +120,16 @@ export function Dashboard() {
     finally { setWorking(false); }
   }
 
+  async function changeShift(entryId: string, status: "confirmed" | "declined" | "checked_in") {
+    if (!user || !churchId || !canWrite) return;
+    setWorking(true); setNotice("");
+    try {
+      await api(user,"/api/churches/"+encodeURIComponent(churchId)+"/assignments/"+encodeURIComponent(entryId),{status},"PATCH");
+      await loadEntries(user,churchId);
+      setNotice(status==="checked_in"?"Presença registrada.":status==="confirmed"?"Presença confirmada.":"Escala recusada.");
+    } catch (error) { setNotice(error instanceof Error ? error.message : "Não foi possível atualizar a escala."); }
+    finally { setWorking(false); }
+  }
   const update = (key: keyof Form, value: string) => setForm(prev => ({...prev,[key]:value}));
   const formatDate = (date?: string) => date ? date.split("-").reverse().join("/") : "A definir";
   const futureEvents = entries.events.filter(e => !e.date || e.date >= new Date().toISOString().slice(0,10)).sort((a,b) => (a.date || "").localeCompare(b.date || "")).slice(0,5);
@@ -126,8 +141,8 @@ export function Dashboard() {
       <div className="sidebar-bottom"><span className="sidebar-dot"/> Conta conectada à Tera ID <Link href="/">Voltar ao site ↗</Link></div>
     </aside>
     <main className="dashboard-main">
-      <div className="dash-top"><div className="top-breadcrumb">VELYSOMA VOLUTS <span>/</span> {tab==="overview"?"INÍCIO":resourceNames[tab].toUpperCase()}</div><button className="profile-button" type="button" onClick={() => {void signOut(browserAuth()).then(() => router.replace("/volut/entrar"));}}>Sair <span aria-hidden="true">↗</span></button></div>
-      <div className="dash-heading"><div><div className="section-kicker">SUA COMUNIDADE EM UM SÓ LUGAR</div><h1>{tab==="overview"?"Visão geral":resourceNames[tab]}</h1><p>{church ? church.name : "Comece cadastrando sua primeira igreja."}</p></div>{churches.length>0 && <label className="church-picker">IGREJA ATIVA<select value={churchId} onChange={event=>setChurchId(event.target.value)}>{churches.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>}</div>
+      <div className="dash-top"><div className="top-breadcrumb">VELYSOMA VOLUTS <span>/</span> {tab==="overview"?"INÍCIO":labels[tab].toUpperCase()}</div><button className="profile-button" type="button" onClick={() => {void signOut(browserAuth()).then(() => router.replace("/volut/entrar"));}}>Sair <span aria-hidden="true">↗</span></button></div>
+      <div className="dash-heading"><div><div className="section-kicker">SUA COMUNIDADE EM UM SÓ LUGAR</div><h1>{labels[tab]}</h1><p>{church ? church.name : "Comece cadastrando sua primeira igreja."}</p></div>{churches.length>0 && <label className="church-picker">IGREJA ATIVA<select value={churchId} onChange={event=>setChurchId(event.target.value)}>{churches.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>}</div>
       {notice && <div className={"notice"+(/falha|não|erro|inválido|acesso/i.test(notice)?" error":"")} role="status">{notice}</div>}
       {loading ? <div className="panel-loading">Carregando seu espaço…</div> :
         !user ? <div className="empty-box"><h2>Precisamos conectar sua Tera ID.</h2><Link className="btn btn-gold" href="/volut/entrar">Ir para o login →</Link></div> :
@@ -141,8 +156,17 @@ export function Dashboard() {
           ].map(stat=><article className="stat" key={stat.label}><div className="stat-line"><span>{stat.label}</span><b>{stat.icon}</b></div><strong>{String(stat.value).padStart(2,"0")}</strong><small>Cadastros nesta igreja</small></article>)}</div>
           <div className="dash-panels"><section className="dash-panel"><div className="panel-top"><div><span className="section-kicker">AGENDA DA IGREJA</span><h2>Próximas programações</h2></div><button className="text-action" type="button" onClick={()=>setTab("events")}>Ver todas ↗</button></div>{futureEvents.length ? futureEvents.map(e=><div key={e.id} className="event-line"><span className="event-date"><strong>{(e.date||"").slice(8,10)||"--"}</strong>{(e.date||"").slice(5,7)||"--"}</span><div><strong>{e.name}</strong><small>{formatDate(e.date)} · {e.time||"Horário a definir"}</small></div><span className="status-tag">Programação</span></div>) : <p className="empty-state">Nenhuma programação cadastrada. Comece criando seu primeiro culto ou evento.</p>}</section><section className="dash-panel next-card"><span className="section-kicker">COMECE POR AQUI</span><h2>Um passo de cada vez.</h2><p>Cadastre primeiro os ministérios, depois as pessoas, crie programações e monte suas escalas.</p><div className="quick-list">{resources.map((r,i)=><button key={r} type="button" onClick={()=>setTab(r)}><span>{String(i+1).padStart(2,"0")}</span>{resourceNames[r]} <b>↗</b></button>)}</div></section></div>
         </> :
-        <div className="dash-panels resource-layout"><section className="dash-panel"><div className="panel-top"><div><span className="section-kicker">CADASTROS DA IGREJA</span><h2>{resourceNames[tab]}</h2></div><span className="counter">{entries[tab].length} registros</span></div><div className="entries-list">{entries[tab].length===0 ? <p className="empty-state">Ainda não há registros neste módulo.</p> : entries[tab].map(e=><div className="entry" key={e.id}><span className="entry-avatar">{tab==="people"?"♙":tab==="ministries"?"✦":tab==="events"?"▦":"☷"}</span><div><strong>{tab==="assignments"?nameFor("people",e.personId)+" · "+nameFor("events",e.eventId):e.name}</strong><small>{tab==="events"?formatDate(e.date)+" · "+(e.time||"Horário a definir"):tab==="people"?nameFor("ministries",e.ministryId)||"":tab==="assignments"?"Voluntário escalado":"Ministério cadastrado"}</small></div><span className="status-tag">Ativo</span></div>)}</div></section>
-          <section className="dash-panel"><span className="section-kicker">NOVO REGISTRO</span><h2>{tab==="assignments"?"Adicionar à escala":"Cadastrar "+resourceNames[tab].toLowerCase()}</h2>{!canWrite?<p className="empty-state">Sua função nesta igreja permite apenas consultar os registros.</p>:<form onSubmit={createEntry} className="entry-form">
+        tab==="availability" || tab==="planner" || tab==="reports" ? <Extras key={churchId} tab={tab} user={user} churchId={churchId} entries={entries} canWrite={Boolean(canWrite)} reload={()=>loadEntries(user,churchId)}/> :
+        <div className="dash-panels resource-layout"><section className="dash-panel"><div className="panel-top"><div><span className="section-kicker">CADASTROS DA IGREJA</span><h2>{resourceNames[tab as Resource]}</h2></div><span className="counter">{entries[tab as Resource].length} registros</span></div><div className="entries-list">{entries[tab as Resource].length===0 ? <p className="empty-state">Ainda não há registros neste módulo.</p> : entries[tab as Resource].map(e=><div className="entry" key={e.id}><span className="entry-avatar">{tab==="people"?"♙":tab==="ministries"?"✦":tab==="events"?"▦":"☷"}</span><div><strong>{tab==="assignments"?nameFor("people",e.personId)+" · "+nameFor("events",e.eventId):e.name}</strong><small>{tab==="events"?formatDate(e.date)+" · "+(e.time||"Horário a definir"):tab==="people"?nameFor("ministries",e.ministryId)||"":tab==="assignments"?"Voluntário escalado":"Ministério cadastrado"}</small></div>{tab==="assignments"?
+                <div className="shift-actions">
+                  <span className="shift-status">{e.status==="checked_in"?"Presente":e.status==="confirmed"?"Confirmado":e.status==="declined"?"Recusado":"Pendente"}</span>
+                  {canWrite && e.status!=="checked_in" && e.status!=="declined" && <>
+                    {e.status!=="confirmed"&&<button disabled={working} type="button" onClick={()=>void changeShift(e.id,"confirmed")}>Confirmar</button>}
+                    {e.status==="confirmed"&&<button disabled={working} type="button" onClick={()=>void changeShift(e.id,"checked_in")}>Check-in ✓</button>}
+                    <button disabled={working} type="button" onClick={()=>void changeShift(e.id,"declined")}>Recusar</button>
+                  </>}
+                </div> : <span className="status-tag">Ativo</span>}</div>)}</div></section>
+          <section className="dash-panel"><span className="section-kicker">NOVO REGISTRO</span><h2>{tab==="assignments"?"Adicionar à escala":"Cadastrar "+resourceNames[tab as Resource].toLowerCase()}</h2>{!canWrite?<p className="empty-state">Sua função nesta igreja permite apenas consultar os registros.</p>:<form onSubmit={createEntry} className="entry-form">
           {tab!=="assignments" && <label>Nome<input required minLength={2} maxLength={140} value={form.name} onChange={e=>update("name",e.target.value)} placeholder={tab==="people"?"Nome completo":tab==="events"?"Nome do culto ou evento":"Nome do ministério"}/></label>}
           {tab==="people" && <><label>E-mail (opcional)<input type="email" value={form.email} onChange={e=>update("email",e.target.value)} placeholder="exemplo@email.com"/></label><label>Telefone (opcional)<input type="tel" value={form.phone} onChange={e=>update("phone",e.target.value)} placeholder="(11) 99999-9999"/></label></>}
           {tab==="events" && <div className="form-row"><label>Data<input required type="date" value={form.date} onChange={e=>update("date",e.target.value)}/></label><label>Hora<input type="time" value={form.time} onChange={e=>update("time",e.target.value)}/></label></div>}
