@@ -66,7 +66,8 @@ export async function POST(request: NextRequest, { params }: Context) {
       if (conflicts) return Response.json({ message: "Esta pessoa já está escalada em uma programação com horário coincidente." }, { status: 409 });
       entry = { eventId, personId, status: "scheduled" };
     }
-    if (entry.ministryId && !(await ref.collection("ministries").doc(entry.ministryId).get()).exists) {
+    const ministryId = typeof entry.ministryId === "string" ? entry.ministryId : "";
+    if (ministryId && !(await ref.collection("ministries").doc(ministryId).get()).exists) {
       return Response.json({ message: "Ministério não encontrado nesta igreja." }, { status: 400 });
     }
     const collection = ref.collection(resource);
