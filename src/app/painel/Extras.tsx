@@ -4,7 +4,7 @@ import type { User } from "firebase/auth";
 import type { Resource, Entry } from "@/lib/resources";
 
 type EntryMap = Record<Resource, Entry[]>;
-type ExtraTab = "availability" | "planner" | "reports";
+type ExtraTab = "availability" | "planner" | "suggest" | "reports";
 type Availability = { personId: string; weekdays: number[]; blockedDates: string[] };
 type Suggestion = { personId: string; name: string; eligible: boolean; preference: string; served: number; reason: string };
 type Props = { tab: ExtraTab; user: User; churchId: string; entries: EntryMap; canWrite: boolean; reload: () => Promise<void> };
@@ -40,6 +40,7 @@ export function Extras({tab,user,churchId,entries,canWrite,reload}:Props) {
   const [selectedEvent,setSelectedEvent] = useState("");
   const [suggestions,setSuggestions] = useState<Suggestion[]>([]);
   const [month,setMonth] = useState(()=>new Date().toISOString().slice(0,7));
+  const [selectedDate,setSelectedDate] = useState("");
   const [busy,setBusy] = useState(false);
   const [message,setMessage] = useState("");
   const [query,setQuery] = useState("");
@@ -129,23 +130,45 @@ export function Extras({tab,user,churchId,entries,canWrite,reload}:Props) {
       </div>
     </>}
     {tab==="planner"&&<>
-      <div className="extra-intro"><span className="section-kicker">AGENDA + ESCALA ASSISTIDA</span><h2>Planeje com mais clareza</h2><p>Veja as programações do mês e encontre pessoas compatíveis com o horário e com as preferências informadas.</p></div>
-      <div className="extra-columns">
-        <article className="dash-panel">
-          <div className="calendar-head"><h2>Agenda mensal</h2><div><button aria-label="Mês anterior" onClick={()=>shiftMonth(-1)}>‹</button><span>{headingMonth}</span><button aria-label="Mês seguinte" onClick={()=>shiftMonth(1)}>›</button></div></div>
-          <div className="month-grid">{weekdays.map(d=><span className="weekday-title" key={d.id}>{d.label}</span>)}{Array.from({length:firstDay},(_,i)=><div className="calendar-blank" key={"blank-"+i}/>)}{Array.from({length:daysInMonth},(_,i)=>{
-            const date=month+"-"+String(i+1).padStart(2,"0");
-            const events=monthly.filter(item=>item.date===date);
-            return <div className={"calendar-day"+(events.length?" has-events":"")} key={date}><b>{i+1}</b>{events.slice(0,2).map(e=><span title={e.name} key={e.id}>{e.name}</span>)}{events.length>2&&<small>+{events.length-2}</small>}</div>;
-          })}</div>
+      <div className="simple-calendar-layout">
+        <article className="dash-panel simple-calendar">
+          <div className="calendar-head">
+            <div><h2>Calendário</h2><p>Visualize os cultos e encontros do mês.</p></div>
+            <div><button type="button" aria-label="Mês anterior" onClick={()=>shiftMonth(-1)}>‹</button><span>{headingMonth}</span><button type="button" aria-label="Mês seguinte" onClick={()=>shiftMonth(1)}>›</button></div>
+          </div>
+          <div className="month-grid" role="group" aria-label={"Calendário de "+headingMonth}>
+            {weekdays.map(d=><span className="weekday-title" key={d.id}>{d.label}</span>)}
+            {Array.from({length:firstDay},(_,i)=><div className="calendar-blank" key={"blank-"+i}/>)}
+            {Array.from({length:daysInMonth},(_,i)=>{
+              const date=month+"-"+String(i+1).padStart(2,"0");
+              const events=monthly.filter(item=>item.date===date);
+              return <button type="button" aria-pressed={selectedDate===date} aria-label={String(i+1)+" de "+headingMonth+", "+events.length+" eventos"}
+                className={"calendar-day simple-calendar-cell"+(events.length?" has-events":"")+(selectedDate===date?" day-selected":"")}
+                onClick={()=>setSelectedDate(date)} key={date}>
+                <b>{i+1}</b>{events.slice(0,2).map(e=><span title={e.name} key={e.id}>{e.name}</span>)}{events.length>2&&<small>+{events.length-2} mais</small>}
+              </button>;
+            })}
+          </div>
         </article>
-        <article className="dash-panel"><span className="section-kicker">SUGESTÕES INTELIGENTES</span><h2>Montar escala</h2>
-          <form className="entry-form" onSubmit={recommend}><label>Escolha uma programação<select required value={selectedEvent} onChange={e=>{setSelectedEvent(e.target.value);setSuggestions([]);}}><option value="">Selecione</option>{entries.events.map(e=><option value={e.id} key={e.id}>{e.name} · {e.date} {e.time}</option>)}</select></label><button type="submit" disabled={busy||!selectedEvent} className="btn btn-gold btn-block">{busy?"Calculando…":"Encontrar voluntários →"}</button></form>
-          <p className="planner-note">O sistema evita sugestões com indisponibilidade ou conflitos conhecidos. A decisão final continua com a liderança.</p>
-          {suggestions.length>0&&<div className="extra-list suggestion-list">{suggestions.map(s=><div className="extra-row" key={s.personId}><div><strong>{s.name}</strong><small>{s.reason} · {s.served} escala(s) registradas</small></div>{s.eligible&&canWrite?<button type="button" className="text-action" disabled={busy} onClick={()=>void schedule(s)}>Escalar +</button>:<span className="status-tag">{s.eligible?"Apto":"Indisponível"}</span>}</div>)}</div>}
-          {suggestions.length===0&&!busy&&<p className="empty-state">Escolha uma programação para visualizar as sugestões.</p>}
+        <article className="dash-panel simple-calendar-aside">
+          <div className="section-kicker">PROGRAMAÇÕES</div>
+          <h2>{selectedDate ? "Dia "+selectedDate.slice(8,10)+"/"+selectedDate.slice(5,7) : "Neste mês"}</h2>
+          <p>{selectedDate?"Eventos marcados para o dia selecionado.":"Clique em um dia para ver os eventos."}</p>
+          <div className="extra-list">{monthly.filter(e=>!selectedDate||e.date===selectedDate).sort((a,b)=>(a.date||"").localeCompare(b.date||"")||(a.time||"").localeCompare(b.time||"")).slice(0,15).map(e=><div className="extra-row" key={e.id}><div><strong>{e.name}</strong><small>{e.date?.split("-").reverse().join("/")||"Sem data"} · {e.time||"Horário a definir"}</small></div><span className="simple-tiny-dot"/></div>)}
+          {monthly.filter(e=>!selectedDate||e.date===selectedDate).length===0&&<div className="simple-empty"><span>▦</span><strong>Sem eventos neste período.</strong><p>Crie uma nova programação pela Agenda.</p></div>}</div>
+          {selectedDate&&<button type="button" className="text-action" onClick={()=>setSelectedDate("")}>Ver o mês inteiro ↗</button>}
         </article>
       </div>
+    </>}
+    {tab==="suggest"&&<>
+      <div className="extra-intro simple-extra-intro"><h2>Quem pode servir?</h2><p>Selecione a programação. A Voluts considera conflitos conhecidos, ministério e disponibilidade de cada pessoa.</p></div>
+      <article className="dash-panel simple-suggest-card"><div className="section-kicker">ESCALA ASSISTIDA</div>
+        <h2>Encontrar voluntários</h2>
+        <form className="entry-form" onSubmit={recommend}><label>Programação<select required value={selectedEvent} onChange={e=>{setSelectedEvent(e.target.value);setSuggestions([]);}}><option value="">Selecione um evento</option>{entries.events.map(e=><option value={e.id} key={e.id}>{e.name} · {e.date} {e.time}</option>)}</select></label><button type="submit" disabled={busy||!selectedEvent} className="btn btn-gold">{busy?"Buscando…":"Mostrar sugestões →"}</button></form>
+        <p className="planner-note">As sugestões são orientativas; nenhuma escala é criada sem sua confirmação.</p>
+        {suggestions.length>0&&<div className="extra-list suggestion-list">{suggestions.map(s=><div className="extra-row" key={s.personId}><div><strong>{s.name}</strong><small>{s.reason} · {s.served} escala(s)</small></div>{s.eligible&&canWrite?<button type="button" className="text-action" disabled={busy} onClick={()=>void schedule(s)}>Escalar +</button>:<span className="status-tag">{s.eligible?"Disponível":"Não disponível"}</span>}</div>)}</div>}
+        {suggestions.length===0&&!busy&&<div className="simple-empty"><span>♙</span><strong>Nenhuma sugestão ainda.</strong><p>Escolha uma programação e clique no botão acima.</p></div>}
+      </article>
     </>}
     {tab==="reports"&&<>
       <div className="extra-intro"><span className="section-kicker">ACOMPANHAMENTO DE EQUIPES</span><h2>Relatórios e exportação</h2><p>Consulte os totais da igreja e, como administrador, exporte os registros para uma planilha CSV.</p></div>
